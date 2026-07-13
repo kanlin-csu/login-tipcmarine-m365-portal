@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>登入您的帳戶</title>
+<!--
+  ============================================================
+  資安教育訓練用 — 釣魚辨識示範頁（Phishing Awareness Demo）
+  ============================================================
+  用途：課堂教學，示範仿真登入頁如何以假亂真。
+  安全設計（重要）：
+    - 本頁「不」蒐集、不儲存、不傳送任何輸入內容。
+    - 沒有任何後端、沒有表單 action、沒有 fetch/XHR、沒有 cookie/localStorage。
+    - 密碼欄位的值從頭到尾不會被讀取送出，按下登入只會：
+        (1) 顯示教學揭露畫面，(2) 導向真正的官方登入頁。
+    - 僅供你受託授課的教育訓練場合使用，請勿他用。
+  設定：修改下方 CONFIG 即可（帳號、跳轉網址、是否顯示揭露畫面）。
+  ============================================================
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Microsoft JhengHei", "微軟正黑體", sans-serif;
+    background: #ffffff;
+    color: #1b1b1b;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  /* 背景圖層（微軟登入頁常見的滿版背景） */
+  .bg {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #eef3fb 0%, #dfeafc 45%, #cfe0fa 100%);
+    z-index: -1;
+  }
+  .card {
+    width: 440px;
+    max-width: 96vw;
+    background: #fff;
+    margin-top: 14vh;
+    padding: 44px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  }
+  .logo { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; }
+  .logo .sq { display: grid; grid-template-columns: 10px 10px; grid-template-rows: 10px 10px; gap: 2px; }
+  .logo .sq span { width: 10px; height: 10px; display: block; }
+  .logo .name { font-size: 15px; color: #5e5e5e; font-weight: 600; letter-spacing: .2px; }
+  h1 { font-size: 24px; font-weight: 600; margin: 8px 0 4px; }
+  .sub { font-size: 15px; margin: 12px 0 2px; }
+  .field {
+    width: 100%; border: none; border-bottom: 1px solid #666;
+    font-size: 15px; padding: 6px 0 8px; margin: 18px 0 4px; outline: none;
+  }
+  .field:focus { border-bottom: 2px solid #0067b8; }
+  .row { display: flex; justify-content: flex-end; margin-top: 22px; gap: 10px; }
+  .btn {
+    background: #0067b8; color: #fff; border: none;
+    font-size: 15px; padding: 8px 0; width: 108px; cursor: pointer;
+  }
+  .btn:hover { background: #005da6; }
+  .btn.ghost { background: #e6e6e6; color: #1b1b1b; }
+  .btn.ghost:hover { background: #dcdcdc; }
+  .links { margin-top: 20px; font-size: 13px; }
+  .links a { color: #0067b8; text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+  .acct { display: flex; align-items: center; gap: 8px; font-size: 15px; margin-top: 6px; }
+  .acct .back { color: #0067b8; cursor: pointer; }
+  .hidden { display: none !important; }
+  .foot {
+    position: fixed; bottom: 0; right: 0;
+    font-size: 12px; color: #666; padding: 8px 14px;
+  }
+  /* 教學揭露畫面 */
+  .reveal {
+    position: fixed; inset: 0; background: rgba(10,15,25,.92);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    z-index: 10; padding: 24px;
+  }
+  .reveal .box { max-width: 620px; text-align: center; }
+  .reveal .warn { font-size: 64px; line-height: 1; margin-bottom: 18px; }
+  .reveal h2 { font-size: 28px; margin-bottom: 14px; color: #ff5a5a; }
+  .reveal p { font-size: 17px; line-height: 1.7; margin-bottom: 12px; color: #e8e8e8; }
+  .reveal .url { font-family: monospace; background: #222; padding: 3px 8px; border-radius: 4px; color: #ffd479; }
+  .reveal .go { margin-top: 22px; background: #0067b8; color:#fff; border:none; font-size:16px; padding:12px 26px; cursor:pointer; border-radius:4px; }
+  .reveal .go:hover { background:#005da6; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<!-- ===== 登入卡片 ===== -->
+<div class="card" id="card">
+  <div class="logo">
+    <div class="sq">
+      <span style="background:#f25022"></span>
+      <span style="background:#7fba00"></span>
+      <span style="background:#00a4ef"></span>
+      <span style="background:#ffb900"></span>
+    </div>
+    <div class="name">Microsoft</div>
+  </div>
+
+  <!-- 步驟 1：帳號 -->
+  <div id="step1">
+    <h1>登入</h1>
+    <input class="field" id="email" type="email" autocomplete="off" />
+    <div class="links">無法存取您的帳戶？</div>
+    <div class="row">
+      <button class="btn" onclick="toStep2()">下一步</button>
+    </div>
+  </div>
+
+  <!-- 步驟 2：密碼 -->
+  <div id="step2" class="hidden">
+    <div class="acct">
+      <span class="back" onclick="toStep1()">&larr;</span>
+      <span id="acctLabel"></span>
+    </div>
+    <h1 style="margin-top:14px;">輸入密碼</h1>
+    <input class="field" id="pwd" type="password" autocomplete="off" placeholder="密碼" />
+    <div class="links"><a href="#" onclick="return false;">忘記密碼了嗎？</a></div>
+    <div class="row">
+      <button class="btn" onclick="submitDemo()">登入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 教學揭露畫面（登入後彈出）===== -->
+<div class="reveal hidden" id="reveal">
+  <div class="box">
+    <div class="warn">⚠️</div>
+    <h2>這是一個釣魚網站示範</h2>
+    <p>你剛剛以為在登入公司信箱，<br>但這個頁面<b>不是</b> Microsoft，也不是港勤的系統。</p>
+    <p>請看網址列 —— 它是：<span class="url" id="fakeUrl"></span><br>真正的登入頁只會是 <span class="url">login.microsoftonline.com</span></p>
+    <p>如果這是真的攻擊，你的帳號與密碼此刻已經落入他人手中。<br><b>登入前，永遠先看網址。</b></p>
+    <button class="go" onclick="goReal()">前往真正的官方登入頁 →</button>
+  </div>
+</div>
+
+<div class="foot">資安教育訓練示範頁 — 不蒐集任何資料</div>
+
+<script>
+  /* ======================= CONFIG（上場前改這裡）======================= */
+  const CONFIG = {
+    prefillEmail: "@tipcmarine.com.tw", // 預帶帳號，改成示範用帳號
+    redirectUrl: "https://login.microsoftonline.com/", // 登入後導向的「真站」
+    showReveal:  true   // true = 顯示教學揭露畫面；false = 直接跳轉真站
+  };
+  /* =================================================================== */
+
+  // 預帶帳號
+  document.getElementById("email").value = CONFIG.prefillEmail;
+
+  function toStep2() {
+    const email = document.getElementById("email").value || CONFIG.prefillEmail;
+    document.getElementById("acctLabel").textContent = email;
+    document.getElementById("step1").classList.add("hidden");
+    document.getElementById("step2").classList.remove("hidden");
+    document.getElementById("pwd").focus();
+  }
+  function toStep1() {
+    document.getElementById("step2").classList.add("hidden");
+    document.getElementById("step1").classList.remove("hidden");
+  }
+
+  // 「登入」按鈕：不讀取、不儲存、不傳送任何欄位值。
+  function submitDemo() {
+    if (CONFIG.showReveal) {
+      document.getElementById("fakeUrl").textContent = location.host || "(你的 github pages 網址)";
+      document.getElementById("reveal").classList.remove("hidden");
+    } else {
+      goReal();
+    }
+  }
+  function goReal() {
+    window.location.href = CONFIG.redirectUrl;
+  }
+
+  // Enter 鍵操作
+  document.getElementById("email").addEventListener("keydown", e => { if (e.key === "Enter") toStep2(); });
+  document.getElementById("pwd").addEventListener("keydown", e => { if (e.key === "Enter") submitDemo(); });
+</script>
+</body>
+</html>
