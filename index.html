@@ -86,6 +86,20 @@
   .reveal .url { font-family: monospace; background: #222; padding: 3px 8px; border-radius: 4px; color: #ffd479; }
   .reveal .go { margin-top: 22px; background: #0067b8; color:#fff; border:none; font-size:16px; padding:12px 26px; cursor:pointer; border-radius:4px; }
   .reveal .go:hover { background:#005da6; }
+  /* 中獎彩蛋畫面 */
+  .prize {
+    position: fixed; inset: 0;
+    background: radial-gradient(circle at 50% 30%, #ffe680 0%, #ffcf33 40%, #ff9d00 100%);
+    color: #4a2c00; display: flex; align-items: center; justify-content: center;
+    z-index: 11; padding: 24px; text-align: center;
+  }
+  .prize .box { max-width: 560px; }
+  .prize .party { font-size: 72px; line-height: 1; margin-bottom: 10px; animation: pop .5s ease; }
+  @keyframes pop { 0%{transform:scale(.3);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+  .prize h2 { font-size: 34px; margin-bottom: 12px; color:#b23b00; }
+  .prize p { font-size: 18px; line-height: 1.7; margin-bottom: 10px; }
+  .prize .go { margin-top: 20px; background:#b23b00; color:#fff; border:none; font-size:16px; padding:12px 30px; cursor:pointer; border-radius:30px; box-shadow:0 3px 8px rgba(0,0,0,.2); }
+  .prize .go:hover { background:#963000; }
 </style>
 </head>
 <body>
@@ -140,6 +154,17 @@
   </div>
 </div>
 
+<!-- ===== 中獎彩蛋畫面（約 1/30 機率）===== -->
+<div class="prize hidden" id="prize">
+  <div class="box">
+    <div class="party">🎉🎊</div>
+    <h2>恭喜中獎！</h2>
+    <p id="prizeText">你是今天的幸運兒，獲得小獎品一份！</p>
+    <p style="font-size:15px;opacity:.8;">（別緊張，這是課程彩蛋，不是真的登入系統 😄）</p>
+    <button class="go" onclick="prizeContinue()">領獎，然後看真相 →</button>
+  </div>
+</div>
+
 <div class="foot">資安教育訓練示範頁 — 不蒐集任何資料</div>
 
 <script>
@@ -147,7 +172,9 @@
   const CONFIG = {
     prefillEmail: "@tipcmarine.com.tw", // 預帶帳號，改成示範用帳號
     redirectUrl: "https://login.microsoftonline.com/", // 登入後導向的「真站」
-    showReveal:  true   // true = 顯示教學揭露畫面；false = 直接跳轉真站
+    showReveal:  true,  // true = 顯示教學揭露畫面；false = 直接跳轉真站
+    winOdds:     30,    // 中獎彩蛋機率 = 1/winOdds（設 30 約 1/30；設 0 關閉彩蛋）
+    prizeText:   "你是今天的幸運兒，獲得小獎品一份！" // 中獎頁文字，可自行改
   };
   /* =================================================================== */
 
@@ -168,6 +195,21 @@
 
   // 「登入」按鈕：不讀取、不儲存、不傳送任何欄位值。
   function submitDemo() {
+    // 約 1/winOdds 機率跳出中獎彩蛋，其餘進教學揭露
+    const win = CONFIG.winOdds > 0 && Math.floor(Math.random() * CONFIG.winOdds) === 0;
+    if (win) {
+      document.getElementById("prizeText").textContent = CONFIG.prizeText;
+      document.getElementById("prize").classList.remove("hidden");
+    } else {
+      showReveal();
+    }
+  }
+  // 中獎頁按「領獎」後，仍接到教學揭露（有獎也有學到）
+  function prizeContinue() {
+    document.getElementById("prize").classList.add("hidden");
+    showReveal();
+  }
+  function showReveal() {
     if (CONFIG.showReveal) {
       document.getElementById("fakeUrl").textContent = location.host || "(你的 github pages 網址)";
       document.getElementById("reveal").classList.remove("hidden");
