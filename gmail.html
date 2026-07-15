@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>登入 - Google 帳戶</title>
+<!--
+  ============================================================
+  資安教育訓練用 — 釣魚辨識示範頁（Gmail 版）
+  ============================================================
+  用途：課堂教學，示範仿真登入頁如何以假亂真。
+  安全設計（重要）：
+    - 本頁「不」蒐集、不儲存、不傳送任何輸入內容。
+    - 沒有任何後端、沒有表單 action、沒有 fetch/XHR、沒有 cookie/localStorage。
+    - 密碼欄位的值從頭到尾不會被讀取送出，按下登入只會：
+        (1) 中獎彩蛋 或 教學揭露畫面，(2) 導向真正的官方登入頁。
+    - 僅供你受託授課的教育訓練場合使用，請勿他用。
+  設定：修改下方 CONFIG 即可。
+  ============================================================
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Roboto", "Microsoft JhengHei", "微軟正黑體", arial, sans-serif;
+    background: #fff;
+    color: #202124;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card {
+    width: 448px; max-width: 96vw;
+    border: 1px solid #dadce0; border-radius: 8px;
+    padding: 48px 40px 36px;
+  }
+  @media (max-width: 480px){ .card{ border:none; } }
+  .glogo { text-align: center; margin-bottom: 16px; }
+  .glogo svg { height: 24px; }
+  h1 { font-size: 24px; font-weight: 400; text-align: center; margin-bottom: 8px; }
+  .sub { font-size: 16px; text-align: center; margin-bottom: 26px; }
+  .inputwrap { position: relative; margin: 18px 0 6px; }
+  .field {
+    width: 100%; height: 56px; padding: 0 15px;
+    border: 1px solid #5f6368; border-radius: 4px;
+    font-size: 16px; outline: none; background: transparent;
+  }
+  .field:focus { border: 2px solid #1a73e8; }
+  .lbl {
+    position: absolute; left: 12px; top: 17px; color: #5f6368;
+    background: #fff; padding: 0 4px; font-size: 16px; pointer-events: none;
+    transition: .1s ease;
+  }
+  .field:focus + .lbl, .field.filled + .lbl { top: -8px; font-size: 12px; color: #1a73e8; }
+  .field.filled:not(:focus) + .lbl { color: #5f6368; }
+  .link { color: #1a73e8; font-size: 14px; font-weight: 500; text-decoration: none; }
+  .link:hover { text-decoration: underline; }
+  .forgot { margin: 8px 0 0; }
+  .guest { font-size: 14px; color: #202124; margin-top: 30px; line-height: 1.5; }
+  .row { display: flex; align-items: center; justify-content: space-between; margin-top: 30px; }
+  .btn {
+    background: #1a73e8; color: #fff; border: none; border-radius: 4px;
+    font-size: 14px; font-weight: 500; padding: 10px 24px; cursor: pointer;
+  }
+  .btn:hover { background: #1b66c9; box-shadow: 0 1px 2px rgba(60,64,67,.3); }
+  .acct-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #dadce0; border-radius: 16px; padding: 4px 12px 4px 8px; font-size: 14px; margin-bottom: 4px; cursor: pointer; }
+  .acct-chip .dot { width: 20px; height: 20px; border-radius: 50%; background: #1a73e8; color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center; }
+  .hidden { display: none !important; }
+  .foot { position: fixed; bottom: 0; left: 0; right: 0; display:flex; justify-content:space-between; font-size: 12px; color: #70757a; padding: 12px 20px; }
+  /* 教學揭露畫面 */
+  .reveal { position: fixed; inset: 0; background: rgba(10,15,25,.92); color:#fff; display:flex; align-items:center; justify-content:center; z-index:10; padding:24px; }
+  .reveal .box { max-width: 620px; text-align: center; }
+  .reveal .warn { font-size: 64px; line-height:1; margin-bottom:18px; }
+  .reveal h2 { font-size: 28px; margin-bottom:14px; color:#ff5a5a; }
+  .reveal p { font-size: 17px; line-height:1.7; margin-bottom:12px; color:#e8e8e8; }
+  .reveal .url { font-family: monospace; background:#222; padding:3px 8px; border-radius:4px; color:#ffd479; }
+  .reveal .go { margin-top:22px; background:#1a73e8; color:#fff; border:none; font-size:16px; padding:12px 26px; cursor:pointer; border-radius:4px; }
+  .reveal .go:hover { background:#1b66c9; }
+  /* 中獎彩蛋 */
+  .prize { position: fixed; inset:0; background: radial-gradient(circle at 50% 30%, #ffe680 0%, #ffcf33 40%, #ff9d00 100%); color:#4a2c00; display:flex; align-items:center; justify-content:center; z-index:11; padding:24px; text-align:center; }
+  .prize .box { max-width: 560px; }
+  .prize .party { font-size:72px; line-height:1; margin-bottom:10px; animation: pop .5s ease; }
+  @keyframes pop { 0%{transform:scale(.3);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+  .prize h2 { font-size:34px; margin-bottom:12px; color:#b23b00; }
+  .prize p { font-size:18px; line-height:1.7; margin-bottom:10px; }
+  .prize .go { margin-top:20px; background:#b23b00; color:#fff; border:none; font-size:16px; padding:12px 30px; cursor:pointer; border-radius:30px; box-shadow:0 3px 8px rgba(0,0,0,.2); }
+  .prize .go:hover { background:#963000; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="glogo">
+    <svg viewBox="0 0 74 24" xmlns="http://www.w3.org/2000/svg" aria-label="Google">
+      <path fill="#4285F4" d="M9.24 8.19v2.46h5.88c-.18 1.38-.64 2.39-1.34 3.1-.86.86-2.2 1.8-4.54 1.8-3.62 0-6.45-2.92-6.45-6.54s2.83-6.54 6.45-6.54c1.95 0 3.38.77 4.43 1.76L15.4 2.5C13.94 1.08 11.98 0 9.24 0 4.28 0 .11 4.04.11 9s4.17 9 9.13 9c2.68 0 4.7-.88 6.28-2.52 1.62-1.62 2.13-3.91 2.13-5.75 0-.57-.04-1.1-.13-1.54H9.24z"/>
+      <path fill="#EA4335" d="M25 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z"/>
+      <path fill="#FBBC05" d="M37.66 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z"/>
+      <path fill="#4285F4" d="M56.02 6.54v.95h-.09c-.57-.68-1.67-1.29-3.06-1.29-2.9 0-5.56 2.55-5.56 5.83 0 3.26 2.66 5.79 5.56 5.79 1.39 0 2.49-.62 3.06-1.32h.09v.83c0 2.22-1.19 3.41-3.1 3.41-1.56 0-2.53-1.12-2.93-2.07l-2.22.92c.64 1.54 2.33 3.43 5.15 3.43 2.99 0 5.52-1.76 5.52-6.05V6.54h-2.42zm-2.93 8.98c-1.76 0-3.03-1.5-3.03-3.52 0-2.05 1.27-3.52 3.03-3.52 1.74 0 3.1 1.5 3.1 3.54.01 2.03-1.36 3.5-3.1 3.5z"/>
+      <path fill="#34A853" d="M61 .24h2.5v17.6H61z"/>
+      <path fill="#EA4335" d="M70.68 15.52c-1.3 0-2.22-.59-2.82-1.76l7.77-3.21-.26-.66c-.48-1.3-1.96-3.7-4.97-3.7-2.99 0-5.48 2.35-5.48 5.81 0 3.26 2.46 5.81 5.76 5.81 2.66 0 4.2-1.63 4.84-2.57l-1.98-1.32c-.66.96-1.56 1.6-2.86 1.6zm-.18-7.15c1.03 0 1.91.53 2.2 1.28l-5.25 2.17c0-2.44 1.73-3.45 3.05-3.45z"/>
+    </svg>
+  </div>
+
+  <!-- 步驟 1：帳號 -->
+  <div id="step1">
+    <h1>登入</h1>
+    <div class="sub">繼續使用 Gmail</div>
+    <div class="inputwrap">
+      <input class="field" id="email" type="email" autocomplete="off" />
+      <span class="lbl">電子郵件地址或電話號碼</span>
+    </div>
+    <div class="forgot"><a href="#" class="link" onclick="return false;">忘記電子郵件地址？</a></div>
+    <div class="guest">如果這不是你的電腦，請使用訪客模式以私密方式登入。<a href="#" class="link" onclick="return false;">進一步瞭解如何使用訪客模式</a></div>
+    <div class="row">
+      <a href="#" class="link" onclick="return false;">建立帳戶</a>
+      <button class="btn" onclick="toStep2()">繼續</button>
+    </div>
+  </div>
+
+  <!-- 步驟 2：密碼 -->
+  <div id="step2" class="hidden">
+    <h1>歡迎回來</h1>
+    <div style="text-align:center;margin:10px 0 22px;">
+      <span class="acct-chip" onclick="toStep1()"><span class="dot" id="chipInitial">g</span><span id="acctLabel"></span></span>
+    </div>
+    <div class="inputwrap">
+      <input class="field" id="pwd" type="password" autocomplete="off" />
+      <span class="lbl">輸入你的密碼</span>
+    </div>
+    <div class="forgot"><label style="font-size:14px;"><input type="checkbox" onclick="togglePwd(this)"> 顯示密碼</label></div>
+    <div class="row">
+      <a href="#" class="link" onclick="return false;">忘記密碼了嗎？</a>
+      <button class="btn" onclick="submitDemo()">繼續</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 教學揭露畫面 ===== -->
+<div class="reveal hidden" id="reveal">
+  <div class="box">
+    <div class="warn">⚠️</div>
+    <h2>這是一個釣魚網站示範</h2>
+    <p>你剛剛以為在登入 Gmail，<br>但這個頁面<b>不是</b> Google。</p>
+    <p>請看網址列 —— 它是：<span class="url" id="fakeUrl"></span><br>真正的登入頁只會是 <span class="url">accounts.google.com</span></p>
+    <p>如果這是真的攻擊，你的帳號與密碼此刻已經落入他人手中。<br><b>登入前，永遠先看網址。</b></p>
+    <button class="go" onclick="goReal()">前往真正的 Google 登入頁 →</button>
+  </div>
+</div>
+
+<!-- ===== 中獎彩蛋（約 1/winOdds 機率）===== -->
+<div class="prize hidden" id="prize">
+  <div class="box">
+    <div class="party">🎉🎊</div>
+    <h2>恭喜中獎！</h2>
+    <p id="prizeText">你是今天的幸運兒，獲得小獎品一份！</p>
+    <p style="font-size:15px;opacity:.8;">（別緊張，這是課程彩蛋，不是真的登入系統 😄）</p>
+    <button class="go" onclick="prizeContinue()">領獎，然後看真相 →</button>
+  </div>
+</div>
+
+<div class="foot"><span>繁體中文</span><span>說明　隱私權　條款</span></div>
+
+<script>
+  /* ======================= CONFIG（上場前改這裡）======================= */
+  const CONFIG = {
+    prefillEmail: "",  // Gmail 版留空讓學員自己填最自然；要預帶就填 "yourname@gmail.com"
+    redirectUrl: "https://accounts.google.com/", // 登入後導向的「真站」
+    showReveal:  true,  // true = 顯示教學揭露；false = 直接跳轉真站
+    winOdds:     20,    // 中獎機率 = 1/winOdds（20 約 1/20；設 0 關閉彩蛋）
+    prizeText:   "你是今天的幸運兒，獲得小獎品一份！"
+  };
+  /* =================================================================== */
+
+  const emailEl = document.getElementById("email");
+  emailEl.value = CONFIG.prefillEmail;
+  if (emailEl.value) emailEl.classList.add("filled");
+  emailEl.addEventListener("input", () => emailEl.classList.toggle("filled", !!emailEl.value));
+
+  function toStep2() {
+    const email = emailEl.value || "your.name@gmail.com";
+    document.getElementById("acctLabel").textContent = email;
+    document.getElementById("chipInitial").textContent = (email[0] || "g").toUpperCase();
+    document.getElementById("step1").classList.add("hidden");
+    document.getElementById("step2").classList.remove("hidden");
+    document.getElementById("pwd").focus();
+  }
+  function toStep1() {
+    document.getElementById("step2").classList.add("hidden");
+    document.getElementById("step1").classList.remove("hidden");
+  }
+  function togglePwd(cb){ document.getElementById("pwd").type = cb.checked ? "text" : "password"; }
+
+  // 「繼續」按鈕：不讀取、不儲存、不傳送任何欄位值。
+  function submitDemo() {
+    const win = CONFIG.winOdds > 0 && Math.floor(Math.random() * CONFIG.winOdds) === 0;
+    if (win) {
+      document.getElementById("prizeText").textContent = CONFIG.prizeText;
+      document.getElementById("prize").classList.remove("hidden");
+    } else {
+      showReveal();
+    }
+  }
+  function prizeContinue() {
+    document.getElementById("prize").classList.add("hidden");
+    showReveal();
+  }
+  function showReveal() {
+    if (CONFIG.showReveal) {
+      document.getElementById("fakeUrl").textContent = location.host || "(你的 github pages 網址)";
+      document.getElementById("reveal").classList.remove("hidden");
+    } else {
+      goReal();
+    }
+  }
+  function goReal() { window.location.href = CONFIG.redirectUrl; }
+
+  emailEl.addEventListener("keydown", e => { if (e.key === "Enter") toStep2(); });
+  document.getElementById("pwd").addEventListener("keydown", e => { if (e.key === "Enter") submitDemo(); });
+</script>
+</body>
+</html>
